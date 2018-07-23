@@ -1,0 +1,30 @@
+{
+  "author": "Shawn Poellet",
+  "name": "Sony-Camera-Remote",
+  "description": "Wifi control for Sony Alpha cameras",
+  "homepage": "https://github.com/shpoellet/Sony-Camera-Remote",
+  "version": "0.0.1",
+  "main": "./index.js",
+  "license": "MIT",
+  "dependencies": {
+    "semver": "^5.3.0",
+    "util": "^0.10.3"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "keywords": [
+    "photography",
+    "sony",
+    "sony alpha",
+    "sony a7",
+    "sony a7s",
+    "sony a7r",
+    "camera"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shpoellet/Sony-Camera-Remote.git"
+  }
+}
