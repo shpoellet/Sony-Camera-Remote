@@ -42,20 +42,20 @@ io.on('connection', function(socket){
   });
 	socket.on('shootMode', function(){
   	console.log("setting shoot mode");
-  	cam.setShootingMode();
+  	cam.setShootFunction();
   });
 	socket.on('transferMode', function(){
   	console.log("setting transferMode");
-  	cam.setTransferMode();
+  	cam.setTransferFunction();
   });
 	socket.on('getURL', function(){
   	console.log("getting URL");
-  	if(cam.getLastFile(9, 'download/')){console.log(true);}
+  	if(cam.getLastFile(true)){console.log(true);}
 
   });
   socket.on('startViewfinder', function(){
   	console.log("starting liveview");
-  	cam.startViewfinder();
+  	cam.startDownloadMacro();
   });
   socket.on('stopViewfinder', function(){
   	cam.stopViewfinder();
