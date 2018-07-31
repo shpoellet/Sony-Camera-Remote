@@ -1,7 +1,7 @@
 var fs = require('fs');
 var url = require('url');
 var http = require('http');
-var semver = require('semver');
+// var semver = require('semver');
 var util = require('util');
 var events = require('events').EventEmitter;
 var EventEmitter = new events.EventEmitter();
@@ -20,6 +20,7 @@ var recording = false;
 var downloading = false;
 var packetSent = false;
 
+var downloadPath = '';
 
 var connectTime = Date.now() - 5000;
 
@@ -257,13 +258,14 @@ function deleteFile(uri){
 //Downloades a file from the cameras
 function downloadFile(uri, url, remove, id)
 {
-  var file =  fs.createWriteStream(id + '.MP4');
+  var path = downloadPath + id + ['.MP4'];
+  var file =  fs.createWriteStream(path);
   http.get(url, function(response){
     response.pipe(file);
     EventEmitter.emit('downloadStarted', uri);
     downloading = true;
     response.on('end', function(){
-      EventEmitter.emit('downloadComplete', uri, remove)
+      EventEmitter.emit('downloadComplete', uri, path, remove)
     });
   });
 }
@@ -435,9 +437,10 @@ EventEmitter.on('downloadStarted', function(){
   console.log('download started');
 })
 
-EventEmitter.on('downloadComplete', function(uri, remove){
+EventEmitter.on('downloadComplete', function(uri, path, remove){
   console.log('download complete');
   downloading = false;
+  ExportsEmitter.emit('downloadComplete', path);
   if(remove){deleteFile(uri)};
 })
 
@@ -449,6 +452,7 @@ EventEmitter.on('terminateDownloadMacro', function(){
 EventEmitter.on('downloadMacroComplete', function(){
   downloadMacro = false;
   console.log("Download Macro Complete");
+  ExportsEmitter.emit('downloadMacroComplete');
 })
 
 //Public Functions

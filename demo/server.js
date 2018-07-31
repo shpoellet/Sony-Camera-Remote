@@ -70,6 +70,6 @@ http.listen(3000, function(){
   console.log('listening on *:3000');
 });
 
-cam.events.on('connect', function(){console.log("hello world")})
-
-cam.events.on('lostConnection', function(){console.log("hello world lost")})
+// cam.events.on('connect', function(){console.log("hello world")})
+//
+// cam.events.on('lostConnection', function(){console.log("hello world lost")})
