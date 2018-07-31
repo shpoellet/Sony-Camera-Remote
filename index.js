@@ -5,8 +5,11 @@ var semver = require('semver');
 var util = require('util');
 var events = require('events').EventEmitter;
 var EventEmitter = new events.EventEmitter();
+var ExportsEmitter = new events.EventEmitter();
 var minVersionRequired = '2.1.4';
 
+
+exports.events = ExportsEmitter;
 //------------------------------------------------------------------------------
 //Private Variables
 
@@ -15,6 +18,7 @@ var active = true; //Should the system attemt to connect to the camera
 var connectedState = 'notConnected'; //notConnected, connecting, connected
 var recording = false;
 var downloading = false;
+var packetSent = false;
 
 
 var connectTime = Date.now() - 5000;
@@ -40,58 +44,53 @@ function call(method, params, altPath, altVersion, callback){
     params: params || [],
     version: altVersion || '1.0'
   };
-
   var postData = JSON.stringify(rpcReq); //convert the object to a stringify
-
   var httpOptions = { //options for http request
     method: 'POST',
     hostname: url,
     port: port,
     path: altPath || path,
-    timeout: 1000,
+    timeout: 5000,
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Content-Length': Buffer.byteLength(postData)}
-  };
-
-  function httpCallback(res){ //callback function for http.request
-    var rawData = '';
-    var parsedData = null;
-
-    res.setEncoding('utf8');
-
-    res.on('data', function(chunk) {
-      rawData += chunk;
-    });
-
-    res.on('end', function(){
-      try {
-        parsedData = JSON.parse(rawData);
-        var result = parsedData ? parsedData.result : null;
-        var result = parsedData.results ? parsedData.results : result;
-        var error = parsedData ? parsedData.error : null;
-        if(error) {
-          console.log("SonyWifi: error during request", method, error);
+    };
+    function httpCallback(res){ //callback function for http.request
+      EventEmitter.emit('packetReset');
+      var rawData = '';
+      var parsedData = null;
+      res.setEncoding('utf8');
+      res.on('data', function(chunk) {
+        rawData += chunk;
+      });
+      res.on('end', function(){
+        try {
+          parsedData = JSON.parse(rawData);
+          var result = parsedData ? parsedData.result : null;
+          var result = parsedData.results ? parsedData.results : result;
+          var error = parsedData ? parsedData.error : null;
+          if(error) {
+            console.log("SonyWifi: error during request", method, error);
+          }
+          callback && callback(error, result);
+        } catch (e) {
+          console.log(e.message);
+          callback && callback(e);
         }
-        callback && callback(error, result);
-      } catch (e) {
-        console.log(e.message);
-        callback && callback(e);
+      });
+    };
+    var req = http.request(httpOptions, httpCallback);
+    req.write(postData);
+    EventEmitter.emit('packetSent');
+    req.end();
+    req.on('error', function(err){
+      EventEmitter.emit('packetReset');
+      if(err && err.code) {
+        console.log("SonyWifi: network appears to be disconnected");
       }
+      callback && callback(err);
     });
-  };
-
-  var req = http.request(httpOptions, httpCallback);
-  req.write(postData);
-  req.end();
-  req.on('error', function(err){
-    if(err && err.code) {
-      console.log("SonyWifi: network appears to be disconnected (error for " +
-                           method + ": " + err + ", err.code:", err.code, ")");
-    }
-    callback && callback(err);
-  });
-
+    req.on('timeout', ()=>req.abort());
 }
 
 //Processed the data received by a "getEvent" API call
@@ -122,8 +121,10 @@ function connect(){
 
   function connectCallback(err, output){
     if(err){
-      EventEmitter.emit('connectionTimeout');
-      console.log("SonyWifi: failed to connect", err);
+
+        EventEmitter.emit('connectionTimeout');
+        console.log("SonyWifi: failed to connect", err);
+
     }
     else {
       if (connectedState != 'connected'){EventEmitter.emit('connectionEstablished');}
@@ -131,7 +132,12 @@ function connect(){
     }
   }
 
-  call('getEvent', [false], null, null, connectCallback);
+  if(!packetSent){
+    call('getEvent', [false], null, null, connectCallback);
+  }
+  else{
+    console.log("packet already sent")
+  }
 }
 
 //Set the mode of the camera
@@ -269,7 +275,7 @@ function tick()
     switch (connectedState) {
       case 'notConnected':
 
-        if ((Date.now() - connectTime) > 5000){
+        if (((Date.now() - connectTime) > 5000) & !packetSent){
           connect()
           connectTime = Date.now();
         };
@@ -279,7 +285,7 @@ function tick()
       case 'connecting':
         break;
       case 'connected':
-        if ((Date.now() - connectTime) > 1000){
+        if ((Date.now() - connectTime) > 500){
           connect()
           connectTime = Date.now();
         };
@@ -294,15 +300,24 @@ function tick()
 
 
 
-
+//start tick loop
 setInterval(tick, 100);
 
 
 //------------------------------------------------------------------------------
 //Event handlers
+EventEmitter.on('packetSent', function(){
+  packetSent = true;
+})
+
+EventEmitter.on('packetReset', function(){
+  packetSent = false;
+})
+
 EventEmitter.on('connectionEstablished', function(){
   console.log('SonyWifi: Connection Established');
   connectedState = 'connected';
+  ExportsEmitter.emit('connect');
 })
 
 EventEmitter.on('connectionTimeout', function(){
@@ -310,6 +325,7 @@ EventEmitter.on('connectionTimeout', function(){
   connectedState = 'notConnected';
   recording = false;
   downloading = false;
+  ExportsEmitter.emit('lostConnection');
 })
 
 EventEmitter.on('functionSwitched', function(value){
