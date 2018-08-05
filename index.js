@@ -114,6 +114,7 @@ function processGetEvent(events){
       }
     }
   }
+  EventEmitter.emit('getEventProcessed');
 }
 
 //Checks the connection of the camera using the "getEvent" API call
@@ -136,9 +137,9 @@ function connect(){
   if(!packetSent){
     call('getEvent', [false], null, null, connectCallback);
   }
-  else{
-    console.log("packet already sent")
-  }
+  // else{
+  //   console.log("packet already sent")
+  // }
 }
 
 //Set the mode of the camera
@@ -258,7 +259,7 @@ function deleteFile(uri){
 //Downloades a file from the cameras
 function downloadFile(uri, url, remove, id)
 {
-  var path = downloadPath + id + ['.MP4'];
+  var path = downloadPath + id + ['.mp4'];
   var file =  fs.createWriteStream(path);
   http.get(url, function(response){
     response.pipe(file);
@@ -330,6 +331,13 @@ EventEmitter.on('connectionTimeout', function(){
   ExportsEmitter.emit('lostConnection');
 })
 
+EventEmitter.on('getEventProcessed', function(){
+  ExportsEmitter.emit('status', cameraEvents.cameraFunction,
+                                cameraEvents.cameraStatus,
+                                cameraEvents.shootMode,
+                                cameraEvents.liveviewStatus);
+})
+
 EventEmitter.on('functionSwitched', function(value){
 
   if(downloadMacro){ //check if the system is in macro mode
@@ -370,6 +378,8 @@ EventEmitter.on('functionSwitched', function(value){
       EventEmitter.emit('terminateDownloadMacro');
     }
   }
+
+  ExportsEmitter.emit('functionChanged', value);
 })
 
 EventEmitter.on('functionSwitchFailed', function(value){
@@ -377,7 +387,7 @@ EventEmitter.on('functionSwitchFailed', function(value){
 })
 
 EventEmitter.on('modeSwitched', function(value){
-
+  ExportsEmitter.emit('modeChanged', value);
 })
 
 EventEmitter.on('modeSwitchFailed', function(value){
@@ -386,7 +396,7 @@ EventEmitter.on('modeSwitchFailed', function(value){
 
 EventEmitter.on('movieRecStarted', function(){
   recording = true;
-
+  ExportsEmitter.emit('movieRecStarted');
 })
 
 EventEmitter.on('startMovieFailed', function(){
@@ -395,10 +405,11 @@ EventEmitter.on('startMovieFailed', function(){
 
 EventEmitter.on('movieRecStopped', function(){
   recording = false;
+  ExportsEmitter.emit('movieRecStopped');
 })
 
 EventEmitter.on('stopMovieFailed', function(){
-
+  stopMovieRec();
 })
 
 EventEmitter.on('getFileFailed', function(){
@@ -456,6 +467,17 @@ EventEmitter.on('downloadMacroComplete', function(){
 })
 
 //Public Functions
+exports.getStates = function(){
+  var states = {
+    camFunction:cameraEvents.cameraFunction,
+    status:cameraEvents.cameraStatus,
+    shootMode:cameraEvents.shootMode,
+    liveviewStatus:cameraEvents.liveviewStatus,
+    recording:recording
+  };
+  return states;
+}
+
 exports.setShootFunction = function(){
   if((cameraEvents.cameraFunction == 'Contents Transfer') & !recording){
     setFunction('Remote Shooting');
@@ -525,4 +547,8 @@ exports.startDownloadMacro = function(){
     return false;
   }
   return true;
+}
+
+exports.abortDownloadMacro = function(){
+  EventEmitter.emit(terminateDownloadMacro);
 }
