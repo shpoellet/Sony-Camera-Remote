@@ -536,7 +536,7 @@ exports.getLastFile = function(remove){
 
 exports.startDownloadMacro = function(number){
   downloadMacro = true;
-  photoNumber = number;
+  number && (photoNumber = number);
   if(cameraEvents.cameraStatus == 'IDLE'){
     setFunction('Contents Transfer');
   }
