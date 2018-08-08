@@ -33,6 +33,7 @@ var id = 1;
 var cameraEvents = {};
 
 var downloadMacro = false;
+var photoNumber = 0;
 
 //------------------------------------------------------------------------------
 //Private Functions
@@ -417,7 +418,8 @@ EventEmitter.on('getFileFailed', function(){
 })
 
 EventEmitter.on('gotFileInfo', function(uri, url, remove){
-  downloadFile(uri, url, remove, 'downFile');
+  var fileName = ('00000000' + photoNumber).substr(-8);
+  downloadFile(uri, url, remove, fileName);
 })
 
 EventEmitter.on('fileDeleted', function(){
@@ -532,8 +534,9 @@ exports.getLastFile = function(remove){
   }
 }
 
-exports.startDownloadMacro = function(){
+exports.startDownloadMacro = function(number){
   downloadMacro = true;
+  photoNumber = number;
   if(cameraEvents.cameraStatus == 'IDLE'){
     setFunction('Contents Transfer');
   }
