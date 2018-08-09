@@ -553,5 +553,5 @@ exports.startDownloadMacro = function(number){
 }
 
 exports.abortDownloadMacro = function(){
-  EventEmitter.emit(terminateDownloadMacro);
+  EventEmitter.emit('terminateDownloadMacro');
 }
