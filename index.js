@@ -447,11 +447,11 @@ EventEmitter.on('deleteFileFailed', function(){
 })
 
 EventEmitter.on('downloadStarted', function(){
-  console.log('download started');
+  console.log('SonyWifi: Download started');
 })
 
 EventEmitter.on('downloadComplete', function(uri, path, remove){
-  console.log('download complete');
+  console.log('SonyWifi: Download complete');
   downloading = false;
   ExportsEmitter.emit('downloadComplete', path);
   if(remove){deleteFile(uri)};
@@ -485,7 +485,7 @@ exports.setShootFunction = function(){
     setFunction('Remote Shooting');
   }
   else{
-    console.log("camera can not switch mode")
+    console.log("SonyWifi: Camera can not switch mode")
   }
 }
 
@@ -495,7 +495,7 @@ exports.setTransferFunction = function(){
     setFunction('Contents Transfer');
   }
   else{
-    console.log("camera not in shooting mode")
+    console.log("SonyWifi: Camera not in shooting mode")
   }
 }
 
@@ -512,7 +512,7 @@ exports.recordStart = function(){
        startMovieRec();
      }
   else{
-    console.log("camera busy");
+    console.log("SonyWifi: Camera busy");
   }
 }
 
@@ -523,7 +523,7 @@ exports.recordStop = function(){
        stopMovieRec();
      }
   else{
-    console.log("camera not recording");
+    console.log("SonyWifi: Camera not recording");
   }
 }
 
@@ -546,7 +546,7 @@ exports.startDownloadMacro = function(number){
   }
   else{
     EventEmitter.emit('terminateDownloadMacro');
-    console.log('could not start download macro');
+    console.log('SonyWifi: Could not start download macro');
     return false;
   }
   return true;
