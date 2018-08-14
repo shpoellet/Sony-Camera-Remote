@@ -35,7 +35,6 @@ var cameraEvents = {};
 var downloadMacro = false;
 var photoNumber = 0;
 
-
 //------------------------------------------------------------------------------
 //Private Functions
 
@@ -273,95 +272,6 @@ function downloadFile(uri, url, remove, id)
   });
 }
 
-//Start Live View
-function startLiveView(){
-  call('startLiveview', null, null, null, function(err, output){
-    if(err){
-      console.log("SonyWifi: Live View failed to start: " + err)
-    }
-    else{
-      console.log("SonyWifi: Live View started");
-      var liveviewUrl = output[0];
-
-      var COMMON_HEADER_SIZE = 8;
-      var PAYLOAD_HEADER_SIZE = 128;
-      var JPEG_SIZE_POSITION = 4;
-      var PADDING_SIZE_POSITION = 7;
-
-      var jpegSize = 0;
-      var paddingSize = 0;
-      var bufferIndex = 0;
-
-      var liveviewReq = http.request(liveviewUrl, function (liveviewRes) {
-        var imageBuffer;
-
-        var buffer = Buffer.alloc ? Buffer.alloc(0) : new Buffer(0);
-
-        liveviewRes.on('data', function (chunk) {
-          if (jpegSize === 0) {
-            buffer = Buffer.concat([buffer, chunk]);
-
-            if (buffer.length >= (COMMON_HEADER_SIZE + PAYLOAD_HEADER_SIZE)) {
-              jpegSize =
-                buffer.readUInt8(COMMON_HEADER_SIZE + JPEG_SIZE_POSITION) * 65536 +
-                buffer.readUInt16BE(COMMON_HEADER_SIZE + JPEG_SIZE_POSITION + 1);
-
-              imageBuffer = Buffer.alloc ? Buffer.alloc(jpegSize) : new Buffer(jpegSize);
-
-              paddingSize = buffer.readUInt8(COMMON_HEADER_SIZE + PADDING_SIZE_POSITION);
-
-              buffer = buffer.slice(8 + 128);
-              if (buffer.length > 0) {
-                buffer.copy(imageBuffer, bufferIndex, 0, buffer.length);
-                bufferIndex += buffer.length;
-              }
-            }
-          } else {
-            chunk.copy(imageBuffer, bufferIndex, 0, chunk.length);
-            bufferIndex += chunk.length;
-
-            if (chunk.length < jpegSize) {
-              jpegSize -= chunk.length;
-            } else {
-              EventEmitter.emit('liveviewJpeg', imageBuffer);
-              buffer = chunk.slice(jpegSize + paddingSize);
-              jpegSize = 0;
-              bufferIndex = 0;
-            }
-          }
-        });
-
-        liveviewRes.on('end', function () {
-          console.log('End');
-        });
-
-        liveviewRes.on('close', function () {
-          console.log('Close');
-        });
-      });
-
-      liveviewReq.on('error', function(e) {
-        console.error('Error: ', e);
-      });
-
-      liveviewReq.end();
-    }
-  })
-}
-
-//Start Live View
-function stopLiveView(callback){
-  call('stopLiveview', null, null, null, function(err){
-    if(err){
-      console.log("SonyWifi: Live View failed to stop: " + err)
-    }
-    else{
-      console.log("SonyWifi: Live View stopped");
-    }
-    callback && callback(err);
-  })
-}
-
 //function to be called on a regular interval
 function tick()
 {
@@ -558,10 +468,6 @@ EventEmitter.on('downloadMacroComplete', function(){
   ExportsEmitter.emit('downloadMacroComplete');
 })
 
-EventEmitter.on('liveviewJpeg', function(imageBuffer){
-  ExportsEmitter.emit('liveviewJpeg', imageBuffer);
-})
-
 //Public Functions
 exports.getStates = function(){
   var states = {
@@ -649,11 +555,3 @@ exports.startDownloadMacro = function(number){
 exports.abortDownloadMacro = function(){
   EventEmitter.emit('terminateDownloadMacro');
 }
-
-exports.startLiveview = function(){
-  startLiveView();
-};
-
-exports.stopLiveview = function(callback){
-  stopLiveView(callback);
-};
