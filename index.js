@@ -333,6 +333,7 @@ function startLiveView(){
 
         liveviewRes.on('end', function () {
           console.log('End');
+          ExportsEmitter.emit('liveviewEnd');
         });
 
         liveviewRes.on('close', function () {
